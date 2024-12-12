@@ -5,13 +5,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'myshrine.dart';
-import 'myshrine2.dart';
 import 'omamori.dart';
 
 class TodayReview extends StatefulWidget {
-  final String goalText; // 今日の目標を受け取るプロパティ
+  final String goalText;
+  final List<String> selectedParts; // selectedPartsを受け取る
 
-  TodayReview({required this.goalText}); // コンストラクタでgoalTextを受け取る
+  TodayReview({required this.goalText, required this.selectedParts}); // コンストラクタで受け取る
 
   @override
   _TodayReviewState createState() => _TodayReviewState();
@@ -25,9 +25,13 @@ class _TodayReviewState extends State<TodayReview> {
   bool _isNotificationOn = true; // 通知がONかどうか
   TimeOfDay _notificationTime = TimeOfDay(hour: 20, minute: 0); // 通知時刻
 
+  // 受け取ったselectedPartsを保持する
+  late List<String> _selectedParts;
+
   @override
   void initState() {
     super.initState();
+    _selectedParts = List.from(widget.selectedParts); // 受け取った選択状態を保持
     _initializeNotifications();
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
@@ -48,6 +52,23 @@ class _TodayReviewState extends State<TodayReview> {
     flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
     print("通知が初期化されました");
+  }
+
+  // 達成ボタンの処理
+  void _toggleAchievement() {
+    setState(() {
+      _isAchieved = !_isAchieved;
+
+      if (_isAchieved) {
+        // 達成した場合、honden.pngを選択リストに追加
+        if (!_selectedParts.contains('image/honden.png')) {
+          _selectedParts.add('image/honden.png');
+        }
+      } else {
+        // 達成を取り消した場合、honden.pngを選択リストから削除
+        _selectedParts.remove('image/honden.png');
+      }
+    });
   }
 
   // 通知をスケジュール
@@ -208,13 +229,15 @@ class _TodayReviewState extends State<TodayReview> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // 「取り消し」ボタンの表示
                 if (_isAchieved)
                   Padding(
                     padding: EdgeInsets.only(bottom: 10),
                     child: TextButton(
                       onPressed: () {
                         setState(() {
-                          _isAchieved = false;
+                          _isAchieved = false; // 「達成した？」に戻す
+                          _selectedParts.remove('image/honden.png'); // hoden.pngを削除
                         });
                       },
                       style: TextButton.styleFrom(
@@ -224,44 +247,91 @@ class _TodayReviewState extends State<TodayReview> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      child: Text('取り消す'),
+                      child: Text('取り消し'),
                     ),
                   ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isAchieved = true;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => OmamoriPage(),
+
+                // 「達成した？」ボタンの表示
+                if (!_isAchieved)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isAchieved = true; // 「達成した？」ボタンが押されたら「達成した！」に変更
+                        _selectedParts.add('image/honden.png'); // 達成したらhonden.pngを追加
+                      });
+
+                      // 「達成した！」に変わった時に OmamoriPage に遷移
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OmamoriPage(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: screenSize.width * 0.6,
+                      height: screenSize.width * 0.6,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.red, // 赤い枠
+                          width: 4,
+                        ),
                       ),
-                    );
-                  },
-                  child: Container(
-                    width: screenSize.width * 0.6,
-                    height: screenSize.width * 0.6,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _isAchieved ? Colors.green : Colors.red,
-                        width: 4,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _isAchieved ? '達成した！' : '達成した？',
-                        style: TextStyle(
-                          fontSize: screenSize.width * 0.07,
-                          fontWeight: FontWeight.bold,
-                          color: _isAchieved ? Colors.green : Colors.red,
+                      child: Center(
+                        child: Text(
+                          '達成した？',
+                          style: TextStyle(
+                            fontSize: screenSize.width * 0.07,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+
+
+                // 「達成した！」ボタンの表示
+                if (_isAchieved)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: GestureDetector(
+                      onTap: () {
+                        // 「達成した！」ボタンが押されたら OmamoriPage に遷移
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OmamoriPage(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: screenSize.width * 0.6,
+                        height: screenSize.width * 0.6,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.green, // 緑の枠
+                            width: 4,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '達成した！',
+                            style: TextStyle(
+                              fontSize: screenSize.width * 0.07,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                 SizedBox(height: 20),
                 TextButton(
                   onPressed: _selectNotificationTime,
@@ -311,13 +381,23 @@ class _TodayReviewState extends State<TodayReview> {
                     ),
                   ),
                   onPressed: () {
-                    // _isAchievedがtrueならMyShrinePageに、falseならMyShrinePage2に遷移
+                    // 選択された部品にhonden.pngが含まれている場合、MyShrinePageに遷移
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => _isAchieved ? MyShrinePage() : MyShrinePage2(), // 条件によって遷移先を変更
+                        builder: (context) => MyShrinePage(
+                          selectedParts: _selectedParts,
+                          isAchieved: _isAchieved,
+                        ),
                       ),
-                    );
+                    ).then((result) {
+                      if (result != null) {
+                        setState(() {
+                          _selectedParts = result['selectedParts'];
+                          _isAchieved = result['isAchieved'];
+                        });
+                      }
+                    });
                   },
                   child: Text(
                     'My神社',

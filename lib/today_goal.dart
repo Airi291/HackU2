@@ -8,6 +8,7 @@ class TodayGoalPage extends StatefulWidget {
 
 class _TodayGoalPageState extends State<TodayGoalPage> {
   String goalText = '30分運動する'; // 目標のテキスト
+  List<String> selectedParts = []; // 選択された部品のリスト
 
   @override
   Widget build(BuildContext context) {
@@ -76,11 +77,14 @@ class _TodayGoalPageState extends State<TodayGoalPage> {
                         ),
                         onPressed: () {
                           // TodayReviewPageに遷移
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => TodayReview(goalText: goalText), // 必須パラメータを渡す
-                            ),
+                              MaterialPageRoute(
+                              builder: (context) => TodayReview(
+                            goalText: goalText, // 必須パラメータを渡す
+                            selectedParts: selectedParts, // 必須パラメータを渡す
+                          ),
+                              ),
                           );
                         },
                         child: Text(

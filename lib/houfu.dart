@@ -26,28 +26,28 @@ class _HouhuPageState extends State<HouhuPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center, // 子要素を中央揃え
             children: [
-              SizedBox(height: screenSize.height * 0.1), // 上部余白を調整
+              SizedBox(height: screenSize.height * 0.05), // 上部余白を調整
               // 上部のテキスト
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Text(
                   '今年1年の抱負を入力してください',
                   style: TextStyle(
-                    fontSize: 24, // フォントサイズを大きく
+                    fontSize: 22, // フォントサイズを大きく
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
-              SizedBox(height: 30), // 上部テキストと画像の間隔
-              // image/16.png
+              SizedBox(height: screenSize.height * 0.03), // テキストと画像の間隔調整
+              // image/myshrine.png
               Image.asset(
-                'image/16.png',
-                width: screenSize.width * 0.6, // サイズを画面幅に応じて調整
-                height: screenSize.width * 0.6,
+                'image/myshrine.png',
+                width: screenSize.width * 0.8, // サイズを画面幅に応じて調整
+                height: screenSize.width * 0.8,
               ),
-              SizedBox(height: 30), // 画像間のスペース
+              SizedBox(height: screenSize.height * 0.05), // 画像と次の要素の間隔調整
               // image/ema.pngとテキスト入力バー
               Stack(
                 alignment: Alignment.topCenter,
@@ -84,7 +84,7 @@ class _HouhuPageState extends State<HouhuPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 80), // テキストバーとボタンの間隔
+              SizedBox(height: screenSize.height * 0.05), // テキストバーとボタンの間隔
               // 決定ボタン
               if (_goalText.isNotEmpty) // 入力が空でない場合に表示
                 ElevatedButton(
@@ -99,7 +99,7 @@ class _HouhuPageState extends State<HouhuPage> {
                     ),
                   ),
                   onPressed: () {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (context) => TodayGoalPage(),
@@ -111,7 +111,7 @@ class _HouhuPageState extends State<HouhuPage> {
                     style: TextStyle(fontSize: 20, color: Colors.white),
                   ),
                 ),
-              SizedBox(height: screenSize.height * 0.1), // 下部余白を調整
+              SizedBox(height: screenSize.height * 0.05), // 下部余白を調整
             ],
           ),
         ),
