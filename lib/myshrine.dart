@@ -4,7 +4,9 @@ class MyShrinePage extends StatefulWidget {
   final List<String> selectedParts; // 選択された部品の状態を引き継ぐ
   final bool isAchieved; // 目標達成状態
 
-  MyShrinePage({Key? key, required this.selectedParts, required this.isAchieved}) : super(key: key);
+  MyShrinePage(
+      {Key? key, required this.selectedParts, required this.isAchieved})
+      : super(key: key);
 
   @override
   _MyShrinePageState createState() => _MyShrinePageState();
@@ -108,7 +110,8 @@ class _MyShrinePageState extends State<MyShrinePage> {
                         Text(
                           '達成日数：${_isAchieved ? 51 : 50}日', // _isAchievedがtrueの場合は51日、falseの場合は50日
                           style: TextStyle(
-                            fontSize: screenSize.width * 0.07, // フォントサイズを画面サイズに応じて調整
+                            fontSize:
+                                screenSize.width * 0.07, // フォントサイズを画面サイズに応じて調整
                             fontWeight: FontWeight.bold,
                             color: Colors.black, // テキストの色
                           ),
@@ -153,7 +156,8 @@ class _MyShrinePageState extends State<MyShrinePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildPartIcon(2, 'image/ishidatami.png', screenSize),
+                            _buildPartIcon(
+                                2, 'image/ishidatami.png', screenSize),
                             _buildPartIcon(3, 'image/komainu.png', screenSize),
                             // 追加されたパーツの表示
                             if (_isAchieved) // 達成した場合にhonden.pngを表示
@@ -220,7 +224,9 @@ class _MyShrinePageState extends State<MyShrinePage> {
         margin: EdgeInsets.symmetric(horizontal: 10), // アイコン間の余白
         decoration: BoxDecoration(
           border: Border.all(
-            color: _isSelected[index] ? Colors.green : Colors.grey, // 選択されていれば緑色、されていなければ灰色
+            color: _isSelected[index]
+                ? Colors.green
+                : Colors.grey, // 選択されていれば緑色、されていなければ灰色
             width: 2, // 枠線の太さ
           ),
           borderRadius: BorderRadius.circular(8), // 枠を丸める
