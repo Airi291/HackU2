@@ -27,3 +27,4 @@ flutter:
   # アセットの設定
   assets:
     - image/
+    - .env

@@ -3,7 +3,7 @@ import 'package:path/path.dart';
 
 class AimDatabaseHelper {
   static final AimDatabaseHelper instance =
-  AimDatabaseHelper._privateConstructor();
+      AimDatabaseHelper._privateConstructor();
   static Database? _database;
 
   AimDatabaseHelper._privateConstructor();
@@ -40,6 +40,16 @@ class AimDatabaseHelper {
     );
   }
 
+  Future<void> resetAim() async {
+    final db = await database;
+    await db.update(
+      'aspirations',
+      {
+        'aim': '',
+      },
+    );
+  }
+
   Future<String> getAim() async {
     final db = await database;
     List<Map<String, dynamic>> maps = await db.query('aspirations');
@@ -63,7 +73,7 @@ class AimDatabaseHelper {
 // Achieve and date database helper
 class AchDatabaseHelper {
   static final AchDatabaseHelper instance =
-  AchDatabaseHelper._privateConstructor();
+      AchDatabaseHelper._privateConstructor();
   static Database? _database;
 
   AchDatabaseHelper._privateConstructor();
@@ -113,16 +123,29 @@ class AchDatabaseHelper {
     return await db.query('achievements');
   }
 
-  Future<void> updateAchieve(int id) async {
+  Future<void> chengeAchieve(int id) async {
     final db = await database;
-    await db.update(
-      'achievements',
-      {
-        'flag': 1,
-      },
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final preFlag =
+        await db.query('achievements', where: 'id = ?', whereArgs: [id]);
+    if (preFlag[0]['flag'] == 1) {
+      await db.update(
+        'achievements',
+        {
+          'flag': 0,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } else {
+      await db.update(
+        'achievements',
+        {
+          'flag': 1,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
   }
 
   Future<String> getAchievement() async {
@@ -130,12 +153,43 @@ class AchDatabaseHelper {
     List<Map<String, dynamic>> maps = await db.query('achievements');
     String achieve = '[]';
     for (var map in maps) {
-      achieve += "${map['date']}: ${map['achieve']}";
+      achieve += "${map['date']}:${map['achieve']}:";
       if (map['flag'] == 1)
         achieve += 'done';
       else
         achieve += 'not done';
+      achieve += ',';
     }
     return achieve;
+  }
+
+  Future<String> getTodayAchievement(String date) async {
+    final db = await database;
+    List<Map<String, dynamic>> maps = await db.query('achievements');
+    String achieve = '';
+    for (var map in maps) {
+      if (map['date'] == date) {
+        achieve += "${map['achieve']}:";
+        if (map['flag'] == 1)
+          achieve += '1';
+        else
+          achieve += '0';
+      }
+    }
+    return achieve;
+  }
+
+  Future<int> getAchieveCount() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM achievements'));
+    return count!;
+  }
+
+  Future<int> getDoneAchieveCount() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM achievements WHERE flag = 1'));
+    return count!;
   }
 }

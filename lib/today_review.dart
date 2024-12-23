@@ -6,69 +6,77 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'myshrine.dart';
 import 'omamori.dart';
+import 'database_helper.dart';
 
 class TodayReview extends StatefulWidget {
-  final String goalText;
-  final List<String> selectedParts; // selectedPartsを受け取る
+  final List<String> selectedParts;
 
-  TodayReview({required this.goalText, required this.selectedParts}); // コンストラクタで受け取る
-
+  TodayReview({required this.selectedParts});
   @override
   _TodayReviewState createState() => _TodayReviewState();
 }
 
 class _TodayReviewState extends State<TodayReview> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
+  late AchDatabaseHelper db;
+  late List<String> _selectedParts;
   bool _isAchieved = false; // 今日の目標が達成されたか
   bool _isNotificationOn = true; // 通知がONかどうか
   TimeOfDay _notificationTime = TimeOfDay(hour: 20, minute: 0); // 通知時刻
-
-  // 受け取ったselectedPartsを保持する
-  late List<String> _selectedParts;
+  String goalText = ''; // 目標のテキスト
+  int _databaseId = 0;
 
   @override
   void initState() {
     super.initState();
-    _selectedParts = List.from(widget.selectedParts); // 受け取った選択状態を保持
+    _selectedParts = List.from(widget.selectedParts);
     _initializeNotifications();
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
+    _openDatabase();
+    _getGoalText();
   }
 
   // 通知の初期化
   void _initializeNotifications() {
     const DarwinInitializationSettings macOSInitializationSettings =
-    DarwinInitializationSettings(
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
 
     const InitializationSettings initializationSettings =
-    InitializationSettings(macOS: macOSInitializationSettings);
+        InitializationSettings(macOS: macOSInitializationSettings);
 
     flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
     print("通知が初期化されました");
   }
 
-  // 達成ボタンの処理
-  void _toggleAchievement() {
-    setState(() {
-      _isAchieved = !_isAchieved;
+  // データベースを開く
+  Future<void> _openDatabase() async {
+    db = AchDatabaseHelper.instance;
+  }
 
-      if (_isAchieved) {
-        // 達成した場合、honden.pngを選択リストに追加
-        if (!_selectedParts.contains('image/honden.png')) {
-          _selectedParts.add('image/honden.png');
+  // 目標のテキストを取得
+  Future<void> _getGoalText() async {
+    try {
+      final date = DateTime.now().toString().substring(0, 10);
+      final goal = await db.getTodayAchievement(date);
+      final id = await db.getAchieveCount();
+      setState(() {
+        goalText = goal.split(':')[0];
+        if (goal.split(':')[1] == '1') {
+          _isAchieved = true;
         }
-      } else {
-        // 達成を取り消した場合、honden.pngを選択リストから削除
-        _selectedParts.remove('image/honden.png');
-      }
-    });
+        _databaseId = id;
+      });
+    } catch (e) {
+      goalText = 'エラー: $e';
+    }
   }
 
   // 通知をスケジュール
@@ -96,23 +104,24 @@ class _TodayReviewState extends State<TodayReview> {
     final tzTime = tz.TZDateTime.from(notificationTime, tz.local);
 
     const DarwinNotificationDetails macOSNotificationDetails =
-    DarwinNotificationDetails(
+        DarwinNotificationDetails(
       subtitle: '目標確認の通知',
       presentAlert: true,
       presentSound: true,
     );
 
     const NotificationDetails notificationDetails =
-    NotificationDetails(macOS: macOSNotificationDetails);
+        NotificationDetails(macOS: macOSNotificationDetails);
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       0, // 通知ID
-      widget.goalText, // タイトルに目標を表示
+      goalText, // タイトルに目標を表示
       _getRandomComment(_isAchieved), // 通知内容
       tzTime, // 通知時刻
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // 必須パラメータ
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
 
     print("通知がスケジュールされました: $tzTime");
@@ -139,9 +148,9 @@ class _TodayReviewState extends State<TodayReview> {
   String _getRandomComment(bool isAchieved) {
     final random = Random();
     return (isAchieved ? _commentsWhenAchieved : _commentsWhenNotAchieved)[
-    random.nextInt(isAchieved
-        ? _commentsWhenAchieved.length
-        : _commentsWhenNotAchieved.length)];
+        random.nextInt(isAchieved
+            ? _commentsWhenAchieved.length
+            : _commentsWhenNotAchieved.length)];
   }
 
   // ランダム画像を選択
@@ -205,7 +214,7 @@ class _TodayReviewState extends State<TodayReview> {
                           child: Align(
                             alignment: Alignment.center,
                             child: Text(
-                              widget.goalText, // 受け取った目標を表示
+                              goalText, // 受け取った目標を表示
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -229,15 +238,15 @@ class _TodayReviewState extends State<TodayReview> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 「取り消し」ボタンの表示
                 if (_isAchieved)
                   Padding(
                     padding: EdgeInsets.only(bottom: 10),
                     child: TextButton(
                       onPressed: () {
                         setState(() {
-                          _isAchieved = false; // 「達成した？」に戻す
-                          _selectedParts.remove('image/honden.png'); // hoden.pngを削除
+                          _isAchieved = false;
+                          db.chengeAchieve(_databaseId);
+                          _selectedParts.remove('image/honden.png');
                         });
                       },
                       style: TextButton.styleFrom(
@@ -251,16 +260,17 @@ class _TodayReviewState extends State<TodayReview> {
                     ),
                   ),
 
-                // 「達成した？」ボタンの表示
+                // 「達成した？」 ボタンの表示
                 if (!_isAchieved)
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        _isAchieved = true; // 「達成した？」ボタンが押されたら「達成した！」に変更
-                        _selectedParts.add('image/honden.png'); // 達成したらhonden.pngを追加
+                        _isAchieved = true;
+                        db.chengeAchieve(_databaseId);
+                        _selectedParts.add('image/honden.png');
                       });
 
-                      // 「達成した！」に変わった時に OmamoriPage に遷移
+                      // 「達成した!」 に変わった時にお守りページに遷移
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -275,7 +285,7 @@ class _TodayReviewState extends State<TodayReview> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.red, // 赤い枠
+                          color: Colors.red,
                           width: 4,
                         ),
                       ),
@@ -292,45 +302,34 @@ class _TodayReviewState extends State<TodayReview> {
                     ),
                   ),
 
-
-                // 「達成した！」ボタンの表示
+                // 「達成した!」 ボタンの表示
                 if (_isAchieved)
                   Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: GestureDetector(
-                      onTap: () {
-                        // 「達成した！」ボタンが押されたら OmamoriPage に遷移
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OmamoriPage(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: screenSize.width * 0.6,
-                        height: screenSize.width * 0.6,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.green, // 緑の枠
-                            width: 4,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '達成した！',
-                            style: TextStyle(
-                              fontSize: screenSize.width * 0.07,
-                              fontWeight: FontWeight.bold,
+                      padding: EdgeInsets.only(top: 10),
+                      child: GestureDetector(
+                        child: Container(
+                          width: screenSize.width * 0.6,
+                          height: screenSize.width * 0.6,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
                               color: Colors.green,
+                              width: 4,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '達成した!',
+                              style: TextStyle(
+                                fontSize: screenSize.width * 0.07,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
+                      )),
 
                 SizedBox(height: 20),
                 TextButton(
@@ -381,7 +380,7 @@ class _TodayReviewState extends State<TodayReview> {
                     ),
                   ),
                   onPressed: () {
-                    // 選択された部品にhonden.pngが含まれている場合、MyShrinePageに遷移
+                    // 選択された部品にhonden.pngが含まれている場合、神社ページに遷移
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -390,14 +389,7 @@ class _TodayReviewState extends State<TodayReview> {
                           isAchieved: _isAchieved,
                         ),
                       ),
-                    ).then((result) {
-                      if (result != null) {
-                        setState(() {
-                          _selectedParts = result['selectedParts'];
-                          _isAchieved = result['isAchieved'];
-                        });
-                      }
-                    });
+                    );
                   },
                   child: Text(
                     'My神社',
